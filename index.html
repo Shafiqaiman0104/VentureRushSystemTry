@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Portal - Login</title>
+  <link rel="icon" href="logoVR.png" type="image/png" />
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1e3a8a, #1e40af);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Splash screen */
+    #splash-screen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 1s ease;
+    }
+
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      max-height: 500px;
+      background-color: white;
+      visibility: hidden;
+    }
+
+    .login-box {
+      background: white;
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 400px;
+      opacity: 0;
+      transition: opacity 1s ease;
+      z-index: 1;
+    }
+
+    .login-box.show {
+      opacity: 1;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #1d4ed8;
+    }
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 🔵 Splash Screen with VR.glb -->
+  <div id="splash-screen">
+    <model-viewer 
+      id="vrModel"
+      src="VR.glb"
+      camera-controls
+      disable-zoom
+      shadow-intensity="1"
+      alt="VR Logo"
+      camera-orbit="0deg 75deg 5m"
+      field-of-view="35deg"
+      environment-image="neutral"
+      exposure="1"
+      style="visibility: hidden;">
+    </model-viewer>
+  </div>
+
+  <!-- 🔐 Login box -->
+  <div class="login-box" id="login-box">
+    <h2>VentureRush System</h2>
+    <p style="text-align:center; color: #555;">Sign in to access your dashboard</p>
+    <input type="text" id="userId" placeholder="User ID" required />
+    <input type="password" id="password" placeholder="Password" required />
+    <button onclick="login()">Sign In</button>
+    <div class="error" id="errorMsg"></div>
+  </div>
+
+  <script>
+    // Splash logic
+    const model = document.getElementById('vrModel');
+    let angle = 0;
+    let frame;
+
+    function spin() {
+      angle += 1;
+      model.cameraOrbit = `${angle}deg 75deg 5m`;
+      if (angle < 360) {
+        frame = requestAnimationFrame(spin);
+      }
+    }
+
+    model.addEventListener('load', () => {
+      model.style.visibility = 'visible';
+      spin();
+    });
+
+    setTimeout(() => {
+      cancelAnimationFrame(frame);
+      document.getElementById('splash-screen').style.opacity = 0;
+      setTimeout(() => {
+        document.getElementById('splash-screen').style.display = 'none';
+        document.getElementById('login-box').classList.add('show');
+      }, 1000);
+    }, 4000);
+
+    // Login logic
+    const deploymentId = "AKfycbwZYyoTqEYrTzk2mLPDer4RoLysmRVXakI4__TvENZ4GZRzMFvDcFOP8FX3xqG4hPv2TQ";
+
+    function login() {
+      const userId = document.getElementById('userId').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorMsg = document.getElementById('errorMsg');
+
+      fetch(`https://script.google.com/macros/s/${deploymentId}/exec`)
+        .then(response => response.json())
+        .then(data => {
+          const users = data.users || [];
+          const foundUser = users.find(user => user.userId === userId && user.password === password);
+
+          if (foundUser) {
+            localStorage.setItem('username', foundUser.username);
+            localStorage.setItem('userId', foundUser.userId);
+            localStorage.setItem('userType', foundUser.type);
+
+            const userType = foundUser.type.toLowerCase();
+            if (userType === "admin") {
+              window.location.href = "adminpage.html";
+            } else if (userType === "staff") {
+              window.location.href = "dashboard.html";
+            } else if (userType === "co") {
+              window.location.href = "coDashboard.html";
+            } else {
+              errorMsg.textContent = "Unknown user type.";
+            }
+          } else {
+            errorMsg.textContent = "Invalid User ID or Password.";
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          errorMsg.textContent = "Error fetching user data.";
+        });
+    }
+  </script>
+</body>
+</html>
